@@ -387,7 +387,7 @@ func (s *Server) handleSupersedeVersion(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, HealthResponse{Status: "ok"})
+	writeJSON(w, http.StatusOK, HealthResponse{Status: "ok", Module: ModuleName})
 }
 
 func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
