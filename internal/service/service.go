@@ -99,11 +99,13 @@ func (s *Service) ParseBlock(blockID int64) (*model.PointCloudBlock, error) {
 	if err := s.store.SaveOcclusion(blockID, zones); err != nil {
 		return nil, err
 	}
-	if err := s.store.SetBlockStatus(blockID, model.BlockStatusPending); err != nil {
+	if err := s.store.SetBlockStatus(blockID, model.BlockStatusLayered); err != nil {
 		return nil, err
 	}
-	// batch moves to reviewing once any block is layered
-	_ = s.store.SetBatchStatus(blk.BatchID, model.BatchStatusProcessing, false)
+	// block is now layered; batch moves to reviewing so the review flow can proceed
+	if err := s.store.SetBatchStatus(blk.BatchID, model.BatchStatusReviewing, false); err != nil {
+		return nil, err
+	}
 	return s.store.GetBlock(blockID)
 }
 

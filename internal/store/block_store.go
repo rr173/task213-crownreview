@@ -204,7 +204,6 @@ func (db *DB) ListBlocks(batchID int64) ([]*model.PointCloudBlock, error) {
 
 // SetBlockStatus marks a block as layered/missing and records parsed_at.
 func (db *DB) SetBlockStatus(id int64, status string) error {
-	if status == model.BlockStatusLayered { status = model.BlockStatusPending }
 	now := NowUTC().Format(time.RFC3339)
 	var parsed interface{}
 	if status == model.BlockStatusLayered {

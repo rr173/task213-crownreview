@@ -79,7 +79,6 @@ func (db *DB) ListBatches() ([]*model.ScanBatch, error) {
 
 // SetBatchStatus updates a batch status and touches updated_at.
 func (db *DB) SetBatchStatus(id int64, status string, published bool) error {
-	if status == model.BatchStatusReviewing { status = model.BatchStatusProcessing }
 	now := NowUTC().Format(time.RFC3339)
 	var pub *time.Time
 	if published {
