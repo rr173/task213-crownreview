@@ -25,6 +25,48 @@ func (db *DB) CreateCandidate(c *model.BreakCandidate) (*model.BreakCandidate, e
 	return db.GetCandidate(id)
 }
 
+// ReplaceCandidates atomically replaces all break candidates (and any review
+// opinions tied to them) for a block, then inserts the given candidates in
+// "open" status. This restores parse idempotency: re-parsing a block no longer
+// accumulates duplicate candidate rows. foreign_keys is ON, so opinions that
+// reference the doomed candidates are cleared first to avoid FK violations.
+func (db *DB) ReplaceCandidates(blockID int64, cands []model.BreakCandidate) ([]*model.BreakCandidate, error) {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("begin: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(
+		`DELETE FROM review_opinions
+		 WHERE candidate_id IN (SELECT id FROM break_candidates WHERE block_id = ?)`,
+		blockID); err != nil {
+		return nil, fmt.Errorf("clear opinions: %w", err)
+	}
+	if _, err := tx.Exec(`DELETE FROM break_candidates WHERE block_id = ?`, blockID); err != nil {
+		return nil, fmt.Errorf("clear candidates: %w", err)
+	}
+	stmt, err := tx.Prepare(
+		`INSERT INTO break_candidates
+		 (block_id, tree_id, status, pos_x, pos_y, pos_z, severity, confidence, edge_a, edge_b, reason, merged_into, created_at)
+		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	if err != nil {
+		return nil, fmt.Errorf("prepare candidate: %w", err)
+	}
+	defer stmt.Close()
+	now := NowUTC().Format(time.RFC3339)
+	for _, c := range cands {
+		if _, err := stmt.Exec(blockID, c.TreeID, model.CandStatusOpen,
+			c.Position[0], c.Position[1], c.Position[2], c.Severity, c.Confidence,
+			c.EdgeA, c.EdgeB, c.Reason, nil, now); err != nil {
+			return nil, fmt.Errorf("insert candidate: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit: %w", err)
+	}
+	return db.ListCandidates(blockID, "")
+}
+
 // GetCandidate fetches a candidate by id.
 func (db *DB) GetCandidate(id int64) (*model.BreakCandidate, error) {
 	row := db.conn.QueryRow(

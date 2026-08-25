@@ -14,6 +14,11 @@ func (db *DB) SaveSkeleton(blockID int64, edges []model.SkeletonEdge) error {
 		return fmt.Errorf("begin: %w", err)
 	}
 	defer tx.Rollback()
+	// Replace semantics: clear prior edges so re-parsing (retries) does not
+	// accumulate duplicates. Keeps the edge count stable across reparse.
+	if _, err := tx.Exec(`DELETE FROM skeleton_edges WHERE block_id = ?`, blockID); err != nil {
+		return fmt.Errorf("clear edges: %w", err)
+	}
 	stmt, err := tx.Prepare(
 		`INSERT INTO skeleton_edges
 		 (block_id, from_node, to_node, from_x, from_y, from_z, to_x, to_y, to_z, radius, created_at)

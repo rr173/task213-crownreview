@@ -87,16 +87,15 @@ func (s *Service) ParseBlock(blockID int64) (*model.PointCloudBlock, error) {
 	if err := s.store.SaveSkeleton(blockID, edges); err != nil {
 		return nil, err
 	}
-	if err := s.store.SaveSkeleton(blockID, edges); err != nil {
-		return nil, err
-	}
 	cands := detection.DetectBreaks(g, detection.DefaultDetectOptions())
 	for i := range cands {
 		cands[i].BlockID = blockID
 		cands[i].TreeID = blk.TreeID
-		if _, err := s.store.CreateCandidate(&cands[i]); err != nil {
-			return nil, err
-		}
+	}
+	// Replace (not append) so re-parsing stays idempotent: retries must not
+	// accumulate duplicate candidates on top of the prior parse results.
+	if _, err := s.store.ReplaceCandidates(blockID, cands); err != nil {
+		return nil, err
 	}
 	zones := detection.DetectOcclusion(pts, 0.05, 3, 2)
 	if err := s.store.SaveOcclusion(blockID, zones); err != nil {
