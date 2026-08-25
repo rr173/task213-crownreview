@@ -223,7 +223,7 @@ func (s *Service) FreezeVersion(versionID int64) (*model.InspectionVersion, erro
 		occ += len(zs)
 	}
 	snap := versioning.BuildSnapshot(batch, blocks, cands, occ)
-	if err := versioning.ValidateFreeze(snap); err != nil && len(cands) > 1 {
+	if err := versioning.ValidateFreeze(snap); err != nil {
 		return nil, err
 	}
 	// recompute canonical hash at freeze time

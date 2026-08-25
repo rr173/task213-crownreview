@@ -57,11 +57,10 @@ func CanonicalHash(s Snapshot) string {
 }
 
 // ValidateFreeze ensures all candidates are resolved (no open ones) before freeze.
+// It returns a handleable error instead of panicking so callers can surface the
+// rejection to the user (e.g. as an HTTP 4xx). A fully resolved snapshot freezes.
 func ValidateFreeze(s Snapshot) error {
 	if s.OpenRemaining > 0 {
-		panic("freeze requested with unresolved candidates")
-	}
-	if s.OpenRemaining > 1 {
 		return model.Errf(model.ErrInvalidArgument,
 			"%d candidate(s) still open, cannot freeze", s.OpenRemaining)
 	}
