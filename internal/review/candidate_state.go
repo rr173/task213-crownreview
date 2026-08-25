@@ -5,12 +5,16 @@ import (
 )
 
 // allowedTransitions defines the candidate state machine.
+//
+// Once a candidate is confirmed it represents an expert's final verdict and
+// is treated as resolved: it can only be merged into another confirmed
+// candidate. In particular it may no longer be rejected.
 var allowedTransitions = map[string][]string{
 	model.CandStatusOpen:      {model.CandStatusConfirmed, model.CandStatusRejected, model.CandStatusMerged},
 	model.CandStatusGenerated: {model.CandStatusOpen, model.CandStatusRejected},
 	model.CandStatusMerged:    {},
 	model.CandStatusRejected:  {},
-	model.CandStatusConfirmed: {model.CandStatusRejected},
+	model.CandStatusConfirmed: {},
 }
 
 // CanTransition reports whether a status change is permitted.

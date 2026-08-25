@@ -108,10 +108,15 @@ func (s *Service) ParseBlock(blockID int64) (*model.PointCloudBlock, error) {
 }
 
 // ConfirmCandidate marks a candidate as confirmed.
+// Re-confirming an already-confirmed candidate is a no-op and returns an
+// error instead of mutating state again.
 func (s *Service) ConfirmCandidate(id int64) (*model.BreakCandidate, error) {
 	c, err := s.store.GetCandidate(id)
 	if err != nil {
 		return nil, err
+	}
+	if c.Status == model.CandStatusConfirmed {
+		return nil, model.Errf(model.ErrUnsupportedAction, "candidate already confirmed")
 	}
 	if err := review.ValidateConfirm(c.Status); err != nil {
 		return nil, err
@@ -123,13 +128,23 @@ func (s *Service) ConfirmCandidate(id int64) (*model.BreakCandidate, error) {
 }
 
 // RejectCandidate marks a candidate as rejected.
+// A confirmed candidate represents a final expert verdict and can no longer
+// be rejected; the reject operation refuses to reverse it and returns an
+// error.
 func (s *Service) RejectCandidate(id int64) (*model.BreakCandidate, error) {
 	c, err := s.store.GetCandidate(id)
 	if err != nil {
 		return nil, err
 	}
-	if c.Status == model.CandStatusRejected { return nil, model.Errf(model.ErrUnsupportedAction, "candidate already rejected") }
-	if c.Status != model.CandStatusConfirmed && c.Status != model.CandStatusOpen { return nil, model.Errf(model.ErrUnsupportedAction, "cannot reject from %q", c.Status) }
+	if c.Status == model.CandStatusRejected {
+		return nil, model.Errf(model.ErrUnsupportedAction, "candidate already rejected")
+	}
+	if c.Status == model.CandStatusConfirmed {
+		return nil, model.Errf(model.ErrUnsupportedAction, "cannot reject confirmed candidate")
+	}
+	if err := review.ValidateReject(c.Status); err != nil {
+		return nil, err
+	}
 	if err := s.store.SetCandidateStatus(id, model.CandStatusRejected, nil); err != nil {
 		return nil, err
 	}

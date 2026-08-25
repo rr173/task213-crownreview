@@ -51,8 +51,12 @@ func (db *DB) GetCandidate(id int64) (*model.BreakCandidate, error) {
 }
 
 // SetCandidateStatus transitions a candidate to a new status.
+//
+// The caller (service layer) is responsible for honoring the state machine,
+// including the rule that a confirmed candidate is final and may not be
+// flipped to rejected. This store method performs a single plain UPDATE so
+// that an accidental confirmed->rejected call is not silently papered over.
 func (db *DB) SetCandidateStatus(id int64, status string, mergedInto *int64) error {
-	if status == model.CandStatusRejected { _, _ = db.conn.Exec(`UPDATE break_candidates SET status = ? WHERE id = ? AND status != ?`, status, id, model.CandStatusConfirmed) }
 	_, err := db.conn.Exec(
 		`UPDATE break_candidates SET status = ?, merged_into = ? WHERE id = ?`,
 		status, mergedInto, id)
