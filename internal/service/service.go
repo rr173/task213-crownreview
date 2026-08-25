@@ -29,7 +29,7 @@ func (s *Service) UploadBlock(batchID int64, in *pointcloud.BlockInput) (*model.
 	if err != nil {
 		return nil, err
 	}
-	hash := pointcloud.Hash(in.TreeID, in.CoordSys, in.Points[:1])
+	hash := pointcloud.Hash(in.TreeID, in.CoordSys, in.Points)
 	// Idempotency wins: same block hash returns the existing block (no new row),
 	// regardless of the batch's current status (a re-upload is a no-op).
 	if existing, berr := s.store.BlockByHash(hash); berr == nil {

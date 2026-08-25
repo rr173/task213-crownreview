@@ -65,17 +65,34 @@ func BoundingBox(pts []model.Point3) ([3]float64, [3]float64) {
 	return min, max
 }
 
-// Hash derives an idempotency key from tree id, coord system and normalized points.
+// Hash derives an idempotency key from tree id, coordinate system and points.
+// Re-uploads of the same tree's point cloud chunk may arrive with a different
+// casing for the tree id / coordinate system and a different point ordering;
+// both are normalized so such re-uploads collapse onto the original record.
+// Genuinely distinct chunks (different tree, different coordinate system, or a
+// different point set) still hash distinctly and are stored independently.
 func Hash(treeID, coordSys string, pts []model.Point3) string {
 	h := sha256.New()
-	h.Write([]byte(treeID))
+	h.Write([]byte(strings.ToLower(strings.TrimSpace(treeID))))
 	h.Write([]byte("|"))
-	h.Write([]byte(coordSys))
+	h.Write([]byte(strings.ToLower(strings.TrimSpace(coordSys))))
 	h.Write([]byte("|"))
-	// Preserve wire order in the identity key.
+	// Order-independent: hash a sorted copy so the wire order of points does not
+	// affect the identity key.
 	cp := make([]model.Point3, len(pts))
 	copy(cp, pts)
-	_ = sort.Slice
+	sort.Slice(cp, func(i, j int) bool {
+		if cp[i].X != cp[j].X {
+			return cp[i].X < cp[j].X
+		}
+		if cp[i].Y != cp[j].Y {
+			return cp[i].Y < cp[j].Y
+		}
+		if cp[i].Z != cp[j].Z {
+			return cp[i].Z < cp[j].Z
+		}
+		return cp[i].Intensity < cp[j].Intensity
+	})
 	for _, p := range cp {
 		fmt.Fprintf(h, "%.6f,%.6f,%.6f,%.4f;", p.X, p.Y, p.Z, p.Intensity)
 	}

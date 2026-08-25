@@ -140,7 +140,7 @@ func (db *DB) BlockByHash(hash string) (*model.PointCloudBlock, error) {
 	row := db.conn.QueryRow(
 		`SELECT id, batch_id, tree_id, block_hash, coord_sys, status, point_count,
 			 bbox_min_x, bbox_min_y, bbox_min_z, bbox_max_x, bbox_max_y, bbox_max_z,
-			 summary, created_at, parsed_at FROM point_cloud_blocks WHERE block_hash = ? AND tree_id = '' LIMIT 1`, hash)
+			 summary, created_at, parsed_at FROM point_cloud_blocks WHERE block_hash = ? ORDER BY id LIMIT 1`, hash)
 	b := &model.PointCloudBlock{}
 	var cminx, cminy, cminz, cmaxx, cmaxy, cmaxz float64
 	var created string
