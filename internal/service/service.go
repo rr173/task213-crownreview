@@ -276,12 +276,17 @@ func (s *Service) PublishBatch(batchID int64) (*model.ScanBatch, error) {
 	if batch.Status == model.BatchStatusPublished {
 		return batch, nil
 	}
-	frozen, err := s.store.FrozenVersionForBatch(0)
+	frozen, err := s.store.FrozenVersionForBatch(batchID)
 	if err != nil {
 		return nil, err
 	}
 	if frozen == nil {
 		return nil, model.Errf(model.ErrInvalidArgument, "no frozen version, cannot publish")
+	}
+	if frozen.BatchID != batchID {
+		// Defensive guard: a frozen version for a different batch must never
+		// satisfy this batch's publish request.
+		return nil, model.Errf(model.ErrInvalidArgument, "frozen version belongs to a different batch, cannot publish")
 	}
 	if err := s.store.SetBatchStatus(batchID, model.BatchStatusPublished, true); err != nil {
 		return nil, err

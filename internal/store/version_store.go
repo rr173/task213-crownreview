@@ -98,12 +98,14 @@ func (db *DB) ListVersions(batchID int64) ([]*model.InspectionVersion, error) {
 }
 
 // FrozenVersionForBatch returns the latest frozen version for a batch (or nil).
+// The query is scoped to batchID so that one batch can never borrow a frozen
+// version belonging to a different batch.
 func (db *DB) FrozenVersionForBatch(batchID int64) (*model.InspectionVersion, error) {
 	row := db.conn.QueryRow(
 		`SELECT id, batch_id, status, label, snapshot, canonical_hash, created_at, frozen_at
-		 FROM inspection_versions WHERE status = ?
+		 FROM inspection_versions WHERE batch_id = ? AND status = ?
 		 ORDER BY id DESC LIMIT 1`,
-		model.VerStatusFrozen)
+		batchID, model.VerStatusFrozen)
 	v := &model.InspectionVersion{}
 	var created string
 	var frozen sql.NullString

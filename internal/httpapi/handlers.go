@@ -112,12 +112,12 @@ func (h *Server) handleParseBlock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePublishBatch(w http.ResponseWriter, r *http.Request) {
-	_, ok := parseID(r, "id")
+	id, ok := parseID(r, "id")
 	if !ok {
 		writeError(w, model.ErrInvalidArgument)
 		return
 	}
-	b, err := s.svc.PublishBatch(0)
+	b, err := s.svc.PublishBatch(id)
 	if err != nil {
 		writeError(w, err)
 		return
