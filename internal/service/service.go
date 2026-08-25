@@ -196,7 +196,14 @@ func (s *Service) CreateVersion(batchID int64) (*model.InspectionVersion, error)
 	versioning.SortCandidatesByID(cands)
 	snap := versioning.BuildSnapshot(batch, blocks, cands, occ)
 	hash := versioning.CanonicalHash(snap)
-	label := batch.Name
+	// Build a safe, slash-free version label from the batch name. The version
+	// sequence is the number of versions that already exist for this batch, so
+	// the first draft is v0, the next is v1, and so on.
+	existing, err := s.store.ListVersions(batchID)
+	if err != nil {
+		return nil, err
+	}
+	label := versioning.LabelFor(batch.Name, len(existing))
 	buf, _ := json.Marshal(snap)
 	return s.store.CreateVersion(batchID, label, string(buf), hash)
 }

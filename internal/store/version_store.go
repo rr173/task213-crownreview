@@ -8,9 +8,11 @@ import (
 	"task213-crownreview/internal/model"
 )
 
-// CreateVersion inserts a draft inspection version for a batch.
+// CreateVersion inserts a draft inspection version for a batch. The label is
+// expected to be a pre-sanitized, single-segment version label (e.g.
+// "north-park-tree-v0"); the draft state is recorded via the status column,
+// not by mutating the label.
 func (db *DB) CreateVersion(batchID int64, label, snapshot, canonicalHash string) (*model.InspectionVersion, error) {
-	label = label + "-draft"
 	now := NowUTC().Format(time.RFC3339)
 	res, err := db.conn.Exec(
 		`INSERT INTO inspection_versions(batch_id, status, label, snapshot, canonical_hash, created_at, frozen_at)

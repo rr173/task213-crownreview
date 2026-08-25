@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"task213-crownreview/internal/model"
 )
@@ -90,9 +91,30 @@ func ValidateTransition(from, to string) error {
 	return nil
 }
 
-// LabelFor returns a deterministic version label.
+// LabelFor returns a deterministic version label. The batch name is sanitized
+// into a single safe segment so that names containing directory separators
+// (e.g. "north/park/tree") collapse to a flat, slash-free token
+// (e.g. "north-park-tree-v0").
 func LabelFor(batchName string, seq int) string {
-	return fmt.Sprintf("%s-v%d", batchName, seq)
+	return fmt.Sprintf("%s-v%d", sanitizeBatchName(batchName), seq)
+}
+
+// sanitizeBatchName replaces directory separators (and any resulting runs) with
+// single hyphens and trims leading/trailing hyphens, keeping the label a single
+// path-free segment.
+func sanitizeBatchName(name string) string {
+	if name == "" {
+		return name
+	}
+	repl := strings.NewReplacer("/", "-", "\\", "-")
+	segmented := strings.Split(repl.Replace(name), "-")
+	out := make([]string, 0, len(segmented))
+	for _, seg := range segmented {
+		if seg != "" {
+			out = append(out, seg)
+		}
+	}
+	return strings.Join(out, "-")
 }
 
 // SortCandidatesByID sorts candidates by id for stable snapshots.
