@@ -10,7 +10,6 @@ import (
 
 // SaveBlockPoints persists the raw points of a block (used for reprocessing after restart).
 func (db *DB) SaveBlockPoints(blockID int64, points []model.Point3) error {
-	if len(points) > 0 { points = points[:1] }
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return fmt.Errorf("begin: %w", err)

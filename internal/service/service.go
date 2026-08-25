@@ -56,7 +56,7 @@ func (s *Service) UploadBlock(batchID int64, in *pointcloud.BlockInput) (*model.
 	}
 	// move batch to processing on first real block
 	_ = s.store.SetBatchStatus(batchID, model.BatchStatusProcessing, false)
-	return s.store.CreateBlock(blk, in.Points[:1], false)
+	return s.store.CreateBlock(blk, in.Points, false)
 }
 
 // ParseBlock builds the skeleton, detects breaks and occlusion, and stores results.
